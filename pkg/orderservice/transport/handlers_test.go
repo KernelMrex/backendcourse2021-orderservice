@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestList(t *testing.T) {
+func TestOrdersList(t *testing.T) {
 	w := httptest.NewRecorder()
 	ordersHandler(w, nil)
 	response := w.Result()
@@ -17,7 +17,9 @@ func TestList(t *testing.T) {
 	}
 
 	jsonString, err := ioutil.ReadAll(response.Body)
-	response.Body.Close()
+	if err := response.Body.Close(); err != nil {
+		t.Fatal(err)
+	}
 	if err != nil {
 		t.Fatal(err)
 	}
