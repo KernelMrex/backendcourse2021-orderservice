@@ -4,25 +4,26 @@ import (
 	"encoding/json"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
+	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
 	"time"
 )
 
 type Order struct {
-	Id        uuid.UUID  `json:"id"`
+	ID        uuid.UUID  `json:"id"`
 	MenuItems []MenuItem `json:"menu_items"`
 }
 
 type OrderFullInfo struct {
-	Id                 uuid.UUID  `json:"id"`
+	ID                 uuid.UUID  `json:"id"`
 	MenuItems          []MenuItem `json:"menu_items"`
 	OrderedAtTimestamp time.Time  `json:"ordered_at_timestamp"`
 	Cost               int        `json:"cost"`
 }
 
 type MenuItem struct {
-	Id       string `json:"id"`
+	ID       string `json:"id"`
 	Quantity int    `json:"quantity"`
 }
 
@@ -31,7 +32,7 @@ type CreateOrderRequest struct {
 }
 
 type CreateOrderResponse struct {
-	Id string `json:"id"`
+	ID string `json:"id"`
 }
 
 func Router() http.Handler {
@@ -45,34 +46,37 @@ func Router() http.Handler {
 	return logMiddleware(setContentTypeMiddleware("application/json", router))
 }
 
-var ordersHandler = http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+var ordersHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 	rawResp, _ := json.Marshal([]Order{
 		{
-			Id: uuid.New(),
+			ID: uuid.New(),
 			MenuItems: []MenuItem{
-				{Id: "0ff-23-21", Quantity: 3},
-				{Id: "0ff-23-22", Quantity: 4},
-				{Id: "0ff-23-23", Quantity: 10},
+				{ID: "0ff-23-21", Quantity: 3},
+				{ID: "0ff-23-22", Quantity: 4},
+				{ID: "0ff-23-23", Quantity: 10},
 			},
 		},
 		{
-			Id: uuid.New(),
+			ID: uuid.New(),
 			MenuItems: []MenuItem{
-				{Id: "0ff-23-21", Quantity: 3},
-				{Id: "0ff-23-22", Quantity: 4},
-				{Id: "0ff-23-23", Quantity: 10},
+				{ID: "0ff-23-21", Quantity: 3},
+				{ID: "0ff-23-22", Quantity: 4},
+				{ID: "0ff-23-23", Quantity: 10},
 			},
 		},
 		{
-			Id: uuid.New(),
+			ID: uuid.New(),
 			MenuItems: []MenuItem{
-				{Id: "0ff-23-21", Quantity: 3},
-				{Id: "0ff-23-22", Quantity: 4},
-				{Id: "0ff-23-23", Quantity: 10},
+				{ID: "0ff-23-21", Quantity: 3},
+				{ID: "0ff-23-22", Quantity: 4},
+				{ID: "0ff-23-23", Quantity: 10},
 			},
 		},
 	})
-	w.Write(rawResp)
+
+	if _, err := w.Write(rawResp); err != nil {
+		log.WithFields(log.Fields{"query": r.URL.Query()}).Error(err)
+	}
 })
 
 var orderHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -91,10 +95,10 @@ var orderHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request)
 	}
 
 	respData := OrderFullInfo{
-		Id: id,
+		ID: id,
 		MenuItems: []MenuItem{
 			{
-				Id:       "0ff-23-23",
+				ID:       "0ff-23-23",
 				Quantity: 3,
 			},
 		},
@@ -103,7 +107,9 @@ var orderHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request)
 	}
 
 	rawRespData, _ := json.Marshal(respData)
-	w.Write(rawRespData)
+	if _, err := w.Write(rawRespData); err != nil {
+		log.WithFields(log.Fields{"query": r.URL.Query(), "response": rawRespData}).Error(err)
+	}
 })
 
 var createOrderHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -112,7 +118,12 @@ var createOrderHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Re
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	defer r.Body.Close()
+
+	defer func() {
+		if err := r.Body.Close(); err != nil {
+			log.WithFields(log.Fields{"query": r.URL.Query()}).Error(err)
+		}
+	}()
 
 	var msg CreateOrderRequest
 	if err := json.Unmarshal(b, &msg); err != nil {
@@ -122,7 +133,7 @@ var createOrderHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Re
 
 	w.WriteHeader(http.StatusOK)
 	uid := uuid.New()
-	response, err := json.Marshal(CreateOrderResponse{Id: uid.String()})
+	response, err := json.Marshal(CreateOrderResponse{ID: uid.String()})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

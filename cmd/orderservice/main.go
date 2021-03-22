@@ -12,17 +12,20 @@ import (
 
 func main() {
 	log.SetFormatter(&log.JSONFormatter{})
-	file, err := os.OpenFile("my.log", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
-	if err == nil {
-		log.SetOutput(file)
-		defer file.Close()
+	log.SetOutput(os.Stdout)
+
+	cfg, err := parseEnv()
+	if err != nil {
+		log.Fatal("error parsing env vars")
+		return
 	}
 
-	serverUrl := ":8080"
-	log.WithFields(log.Fields{"url": serverUrl}).Info("starting the server")
-	srv := startServer(serverUrl)
+	log.WithFields(log.Fields{"url": cfg.ServeRESTAddress}).Info("starting the server...")
+	srv := startServer(cfg.ServeRESTAddress)
 	waitForKillSignal(getKillSignalChan())
-	srv.Shutdown(context.Background())
+	if err := srv.Shutdown(context.Background()); err != nil {
+		log.Fatalln(err)
+	}
 }
 
 func startServer(serverUrl string) *http.Server {
