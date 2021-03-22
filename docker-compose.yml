@@ -1,0 +1,31 @@
+version: "3.3"
+
+services:
+  orderservice:
+    container_name: "orderservice"
+    build: "."
+    ports:
+      - "8000:8000"
+    environment:
+      SERVE_REST_ADDRESS: ":8000"
+      DATA_SOURCE_HOSTNAME: "orderservice-db"
+      DATA_SOURCE_USERNAME: "orderservice-user"
+      DATA_SOURCE_PASSWORD: "orderservice-password"
+      DATA_SOURCE_DATABASE: "orderservice"
+    depends_on:
+      - "orderservice-db"
+  orderservice-db:
+    container_name: "orderservice-db"
+    image: "percona/percona-server:5.7"
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+      MYSQL_DATABASE: "orderservice"
+      MYSQL_USER: "orderservice-user"
+      MYSQL_PASSWORD: "orderservice-password"
+    volumes:
+    - "db-data:/var/lib/mysql"
+
+volumes:
+  db-data:
+
+

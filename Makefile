@@ -1,14 +1,16 @@
-all: build test run
+all: go-build go-test build run
 
 modules:
 	go mod tidy
 
-build: modules
+go-build: modules
 	go build -o bin/orderservice ./cmd/orderservice/.
 
-run:
-	docker build -t orderservice .
-	docker run -d -p8000:8000 orderservice
+build:
+	docker-compose build
 
-test:
+run:
+	docker-compose up
+
+go-test:
 	go test ./...
